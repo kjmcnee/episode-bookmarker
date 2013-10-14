@@ -91,7 +91,7 @@ play_current_episode(){
     
     echo Playing ${episode_file}
 
-    mplayer "${series_path}/${episode_file}" &>/dev/null
+    xdg-open "${series_path}/${episode_file}" &>/dev/null
 }
 
 # advance bookmark to next episode
