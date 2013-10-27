@@ -6,13 +6,16 @@ usage(){
     script_name=$(basename $0 .sh)
 
     echo "Usage:" >&2
-    echo -e "${script_name} start series_name path/to/series\n\tStart bookmarking a series whose files are in the given directory\n" >&2
-    echo -e "${script_name} finish series_name\n\tRemove bookmark for the series\n" >&2
-    echo -e "${script_name} play series_name\n\tPlay the currently bookmarked episode\n" >&2
-    echo -e "${script_name} next series_name\n\tAdvance the bookmark to the next episode\n" >&2
-    echo -e "${script_name} prev series_name\n\tMove the bookmark back to the previous episode\n" >&2
-    echo -e "${script_name} progress series_name\n\tShow how much of the series you've watched\n" >&2
-    echo -e "${script_name} list\n\tList the series being bookmarked by this script" >&2
+    echo -e "${script_name} start [series_name] path/to/series\n\tStart bookmarking a series whose files are in the given directory\n" >&2
+    echo -e "${script_name} finish [series_name]\n\tRemove bookmark for the series\n" >&2
+    echo -e "${script_name} play [series_name]\n\tPlay the currently bookmarked episode\n" >&2
+    echo -e "${script_name} next [series_name]\n\tAdvance the bookmark to the next episode\n" >&2
+    echo -e "${script_name} prev [series_name]\n\tMove the bookmark back to the previous episode\n" >&2
+    echo -e "${script_name} progress [series_name]\n\tShow how much of the series you've watched\n" >&2
+    echo -e "${script_name} list\n\tList the series being bookmarked by this script\n" >&2
+    echo "The series_name can be omitted." >&2
+    echo "For the start function, the name will be inferred from the path (e.g. path/to/series -> series)." >&2
+    echo "For the rest, the series will be the most recently used one." >&2
     exit 1
 }
 
@@ -20,6 +23,7 @@ usage(){
 # it has the following form:
 # each series takes up 3 lines,
 # one for each of the following: the series name, the directory, and the current episode
+# series are ordered from most recently used to least recently used
 bookmarks_file="${HOME}/.episode_bookmarks"
 # if it doesn't exist, create it
 [ -f "${bookmarks_file}" ] || > "${bookmarks_file}"
@@ -27,6 +31,26 @@ bookmarks_file="${HOME}/.episode_bookmarks"
 list_of_series(){
     # sed gets every third line (the lines with the series names)
     sed -n '1~3p' "${bookmarks_file}"
+}
+
+get_most_recently_used_series(){
+    # since the series are ordered, the most recently used series name is simply the first line
+    head -n 1 "${bookmarks_file}"
+}
+
+# moves the series to the top of the file
+# $1 is the series name
+set_most_recently_used_series(){
+    # keep the series information
+    path="$(get_series_path "$1")"
+    episode="$(get_current_episode "$1")"
+
+    # remove it from the file
+    sed -i "/^$1$/{N;N;d;}" "${bookmarks_file}"
+
+    # then put it back at the top
+    echo -e "$1\n${path}\n${episode}" | cat - "${bookmarks_file}" > "${bookmarks_file}.tmp"
+    mv "${bookmarks_file}.tmp" "${bookmarks_file}"
 }
 
 # check if the series is being bookmarked
@@ -144,40 +168,62 @@ show_progress(){
 
 case "$1" in
     start)
-        [ $# -eq 3 ] || usage 
+        if [ $# -eq 3 ] ; then
+            series_name="$2"
+            path_to_series="$3"
+        elif [ $# -eq 2 ] ; then
+            path_to_series="$2"
+            # infer the series name from the path if it is not given
+            series_name=$(basename "${path_to_series}")
+        else
+            usage
+        fi
+
         # validate series uniqueness
-        if series_exists "$2" ; then
-            echo "Error: The series $2 is already being bookmarked" >&2
+        if series_exists "${series_name}" ; then
+            echo "Error: The series ${series_name} is already being bookmarked" >&2
             exit 1
         fi
 
-        start_series "$2" "$3"
+        start_series "${series_name}" "${path_to_series}"
+
+        set_most_recently_used_series "${series_name}"
         ;;
     finish | play | next | prev | progress)
-        [ $# -eq 2 ] || usage
+        if [ $# -eq 2 ] ; then
+            series_name="$2"
+        else
+            # use the previous series if it is not given
+            series_name="$(get_most_recently_used_series)"
+        fi
+
         # exit if series not found
-        if ! series_exists "$2" ; then
-            echo "Error: $2 ain't no series I ever heard of!" >&2
+        if ! series_exists "${series_name}" ; then
+            echo "Error: ${series_name} ain't no series I ever heard of!" >&2
             exit 1
         fi
 
         case "$1" in
             finish)
-                finish_series "$2"
+                finish_series "${series_name}"
                 ;;
             play)
-                play_current_episode "$2"
+                play_current_episode "${series_name}"
                 ;;
             next)
-                next_episode "$2"
+                next_episode "${series_name}"
                 ;;
             prev)
-                prev_episode "$2"
+                prev_episode "${series_name}"
                 ;;
             progress)
-                show_progress "$2"
+                show_progress "${series_name}"
                 ;;
         esac
+
+        if [ "$1" != "finish" ] ; then
+            set_most_recently_used_series "${series_name}"
+        fi
         ;;
     list)
         list_of_series
