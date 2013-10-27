@@ -3,14 +3,16 @@
 # Keeps track of watched episodes
 
 usage(){
+    script_name=$(basename $0 .sh)
+
     echo "Usage:" >&2
-    echo -e "$0 start series_name path/to/series\n\tStart bookmarking a series whose files are in the given directory" >&2
-    echo -e "$0 finish series_name\n\tRemove bookmark for the series" >&2
-    echo -e "$0 play series_name\n\tPlay the currently bookmarked episode" >&2
-    echo -e "$0 next series_name\n\tAdvance the bookmark to the next episode" >&2
-    echo -e "$0 prev series_name\n\tMove the bookmark back to the previous episode" >&2
-    echo -e "$0 progress series_name\n\tShow how much of the series you've watched" >&2
-    echo -e "$0 list\n\tList the series being bookmarked by this script" >&2
+    echo -e "${script_name} start series_name path/to/series\n\tStart bookmarking a series whose files are in the given directory\n" >&2
+    echo -e "${script_name} finish series_name\n\tRemove bookmark for the series\n" >&2
+    echo -e "${script_name} play series_name\n\tPlay the currently bookmarked episode\n" >&2
+    echo -e "${script_name} next series_name\n\tAdvance the bookmark to the next episode\n" >&2
+    echo -e "${script_name} prev series_name\n\tMove the bookmark back to the previous episode\n" >&2
+    echo -e "${script_name} progress series_name\n\tShow how much of the series you've watched\n" >&2
+    echo -e "${script_name} list\n\tList the series being bookmarked by this script" >&2
     exit 1
 }
 
