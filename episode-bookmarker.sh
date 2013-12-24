@@ -82,13 +82,12 @@ set_current_episode(){
 
 # start bookmarking a new series
 # $1 is the series name
-# $2 is the path to the series
+# $2 is the absolute path to the series
 start_series(){
-    abs_path="$(readlink -f "$2")"
-    first_episode="$(ls "${abs_path}" | head -n 1)"
+    first_episode="$(ls "$2" | head -n 1)"
 
     if [ "${first_episode}" = "" ]; then
-        echo "Error: There's nothing to bookmark in ${abs_path}" >&2
+        echo "Error: There's nothing to bookmark in $2" >&2
         exit 1
     fi
 
@@ -97,7 +96,7 @@ start_series(){
 
     # store the bookmark
     echo "$1" >> ${bookmarks_file}
-    echo "${abs_path}" >> ${bookmarks_file}
+    echo "$2" >> ${bookmarks_file}
     echo "${first_episode}" >> ${bookmarks_file}
 }
 
@@ -172,7 +171,7 @@ case "$1" in
 
         [ $# -ge 2 ] || usage
 
-        path_to_series="$2"
+        path_to_series="$(readlink -f "$2")"
 
         if [ $# -ge 3 ] ; then
             # in order to avoid requiring the user to manually escape spaces
