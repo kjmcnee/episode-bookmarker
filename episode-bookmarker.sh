@@ -6,7 +6,7 @@ usage(){
     script_name=$(basename $0 .sh)
 
     echo "Usage:" >&2
-    echo -e "${script_name} start [series_name] path/to/series\n\tStart bookmarking a series whose files are in the given directory\n" >&2
+    echo -e "${script_name} start path/to/series [series_name]\n\tStart bookmarking a series whose files are in the given directory\n" >&2
     echo -e "${script_name} finish [series_name]\n\tRemove bookmark for the series\n" >&2
     echo -e "${script_name} play [series_name]\n\tPlay the currently bookmarked episode\n" >&2
     echo -e "${script_name} next [series_name]\n\tAdvance the bookmark to the next episode\n" >&2
@@ -16,6 +16,7 @@ usage(){
     echo "The series_name can be omitted." >&2
     echo "For the start function, the name will be inferred from the path (e.g. path/to/series -> series)." >&2
     echo "For the rest, the series will be the most recently used one." >&2
+    echo "Escaping spaces in the series_name is not required." >&2
     exit 1
 }
 
@@ -168,15 +169,19 @@ show_progress(){
 
 case "$1" in
     start)
-        if [ $# -eq 3 ] ; then
-            series_name="$2"
-            path_to_series="$3"
-        elif [ $# -eq 2 ] ; then
-            path_to_series="$2"
+
+        [ $# -ge 2 ] || usage
+
+        path_to_series="$2"
+
+        if [ $# -ge 3 ] ; then
+            # in order to avoid requiring the user to manually escape spaces
+            # or quote the series_name from the command line,
+            # we treat the rest of the args as part of the series name, instead of just $3
+            series_name="${@:3}"
+        else
             # infer the series name from the path if it is not given
             series_name=$(basename "${path_to_series}")
-        else
-            usage
         fi
 
         # validate series uniqueness
@@ -190,8 +195,8 @@ case "$1" in
         set_most_recently_used_series "${series_name}"
         ;;
     finish | play | next | prev | progress)
-        if [ $# -eq 2 ] ; then
-            series_name="$2"
+        if [ $# -ge 2 ] ; then
+            series_name="${@:2}" # see above for how series_name is determined from remaining args
         else
             # use the previous series if it is not given
             series_name="$(get_most_recently_used_series)"
