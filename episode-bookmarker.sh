@@ -76,15 +76,20 @@ get_current_episode(){
 # $1 is the series name
 # $2 is the new episode
 set_current_episode(){
-    sed -i "N;N;s/^$1\n\(.*\)\n.*/$1\n\1\n$2/" "${bookmarks_file}"
+    sed -i "N;N;s|^$1\n\(.*\)\n.*|$1\n\1\n$2|" "${bookmarks_file}"
 }
 
+# list the episodes of the series
+# $1 is the absolute path to the series
+list_episodes(){
+    find "$1" -type f | sort | sed "s|$1/||"
+}
 
 # start bookmarking a new series
 # $1 is the series name
 # $2 is the absolute path to the series
 start_series(){
-    first_episode="$(ls "$2" | head -n 1)"
+    first_episode="$(list_episodes "$2" | head -n 1)"
 
     if [ "${first_episode}" = "" ]; then
         echo "Error: There's nothing to bookmark in $2" >&2
@@ -104,7 +109,7 @@ start_series(){
 # $1 is the series name
 finish_series(){
     echo "Removing bookmark for $1"
-    
+
     # inplace deletes the line with the series name and the following two lines (path and current episode)
     sed -i "/^$1$/{N;N;d;}" "${bookmarks_file}"
 }
@@ -114,7 +119,7 @@ finish_series(){
 play_current_episode(){
     series_path="$(get_series_path "$1")"
     episode_file="$(get_current_episode "$1")"
-    
+
     echo Playing ${episode_file}
 
     xdg-open "${series_path}/${episode_file}" &>/dev/null
@@ -125,7 +130,7 @@ play_current_episode(){
 next_episode(){
     series_path="$(get_series_path "$1")"
     current_episode="$(get_current_episode "$1")"
-    next="$(ls "${series_path}" | grep -A 1 "^${current_episode}$" | tail -n 1)"
+    next="$(list_episodes "${series_path}" | grep -A 1 "^${current_episode}$" | tail -n 1)"
 
     if [ "${next}" = "${current_episode}" ]; then
         echo "${current_episode} is the last episode of $1"
@@ -140,7 +145,7 @@ next_episode(){
 prev_episode(){
     series_path="$(get_series_path "$1")"
     current_episode="$(get_current_episode "$1")"
-    prev="$(ls "${series_path}" | grep -B 1 "^${current_episode}$" | head -n 1)"
+    prev="$(list_episodes "${series_path}" | grep -B 1 "^${current_episode}$" | head -n 1)"
 
     if [ "${prev}" = "${current_episode}" ]; then
         echo "${current_episode} is the first episode of $1"
@@ -154,12 +159,12 @@ prev_episode(){
 # $1 is the series name
 show_progress(){
     echo "$1:"
-    
+
     # list episodes and prepend "->" to indicate the current episode
-    ls "$(get_series_path "$1")" | sed "s/^/    /" | sed "s/    \($(get_current_episode "$1")\)/ -> \1/"
-    
-    num_current_episode="$(ls "$(get_series_path "$1")" | grep -n "$(get_current_episode "$1")" | sed "s/\([0-9]*\):.*/\1/")"
-    num_total_episodes="$(ls "$(get_series_path "$1")" | wc -l)"
+    list_episodes "$(get_series_path "$1")" | sed "s|^|    |" | sed "s|    \($(get_current_episode "$1")\)| -> \1|"
+
+    num_current_episode="$(list_episodes "$(get_series_path "$1")" | grep -n "$(get_current_episode "$1")" | sed "s|\([0-9]*\):.*|\1|")"
+    num_total_episodes="$(list_episodes "$(get_series_path "$1")" | wc -l)"
     echo Current episode: $(get_current_episode "$1") \(${num_current_episode} of ${num_total_episodes}\)
 }
 
