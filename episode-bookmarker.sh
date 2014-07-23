@@ -82,7 +82,7 @@ set_current_episode(){
 # list the episodes of the series
 # $1 is the absolute path to the series
 list_episodes(){
-    find "$1" -type f | sort | sed "s|$1/||"
+    find "$1" -type f -not -name "*.srt" | sort | sed "s|$1/||"
 }
 
 # start bookmarking a new series
