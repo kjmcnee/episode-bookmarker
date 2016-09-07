@@ -82,7 +82,13 @@ set_current_episode(){
 # list the episodes of the series
 # $1 is the absolute path to the series
 list_episodes(){
-    find "$1" -type f -not -name "*.srt" | sort | sed "s|$1/||"
+    # exclude files that are not audio or video (as determined by mime type)
+    find "$1" -type f \
+        | file --no-pad --mime-type --files-from - \
+        | sort \
+        | sed "s|$1/||" \
+        | grep ": \(video\|audio\)/[a-zA-Z0-9+-]\+$" \
+        | sed "s|: [a-z]\+/[a-zA-Z0-9+-]\+$||"
 }
 
 # start bookmarking a new series
